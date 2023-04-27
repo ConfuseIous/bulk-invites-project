@@ -48,7 +48,10 @@ export default async function handler(
     if (!company) {
       // Create company if it doesn't exist
       company = await prisma.companies.create({
-        data: { name: invite.companyName },
+        data: {
+          name: invite.companyName,
+          users: {},
+        },
       });
     }
 
@@ -89,5 +92,22 @@ export default async function handler(
   };
 
   // Send email to successfully created invites
-  sendNotificationEmail(data);
+  let response = await sendNotificationEmail(data);
+
+  // If there was an error sending the email, return error
+  if (response.success) {
+    return res.status(200).json({
+      message: `Successfully created and sent invites for ${emailsForSuccessfullyCreatedInvites.join(
+        ", "
+      )}. There was an error processing invites for ${emailsForUnsuccessfullyCreatedInvites.join(
+        ", "
+      )}.`,
+    });
+  } else {
+    return res.status(400).json({
+      error: `Successfully created invites for ${emailsForSuccessfullyCreatedInvites.join(
+        ", "
+      )}, but there was an error scheduling emails to be sent to these users. Message: ${response.message}`,
+    });
+  }
 }
