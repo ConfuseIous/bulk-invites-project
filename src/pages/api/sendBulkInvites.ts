@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
+import { BulkEmailRequestBody } from "../../../types/BulkEmailRequestBody";
+import sendNotificationEmail from "./bulkSendNotificationEmails";
 
 export const sendBulkInvitesSchema = z.array(
   z.object({
@@ -38,21 +40,17 @@ export default async function handler(
   const emailsForUnsuccessfullyCreatedInvites: string[] = [];
 
   invites.forEach(async (invite) => {
-    // Verify that company name does not already exist
-    const existingCompany = await prisma.companies.findFirst({
+    // Check if company name already exists
+    let company = await prisma.companies.findFirst({
       where: { name: invite.companyName },
     });
 
-    if (existingCompany) {
-      return res.status(400).json({
-        error: `Company with name ${invite.companyName} already exists`,
+    if (!company) {
+      // Create company if it doesn't exist
+      company = await prisma.companies.create({
+        data: { name: invite.companyName },
       });
     }
-
-    // Create company
-    const company = await prisma.companies.create({
-      data: { name: invite.companyName },
-    });
 
     // Create user
     const user = await prisma.users.create({
@@ -74,5 +72,22 @@ export default async function handler(
       : emailsForUnsuccessfullyCreatedInvites.push(invite.email);
   });
 
+  // Format data for SIB
+  const data: BulkEmailRequestBody = {
+    messageVersions: emailsForSuccessfullyCreatedInvites.map((email) => ({
+      to: [
+        {
+          email,
+          name: invites.find((invite) => invite.email === email)?.name ?? "",
+        },
+      ],
+      params: {
+        name: email,
+        message: "You have been invited to join SIWMA.",
+      },
+    })),
+  };
+
   // Send email to successfully created invites
+  sendNotificationEmail(data);
 }

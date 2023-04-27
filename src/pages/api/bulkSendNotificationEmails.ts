@@ -1,32 +1,11 @@
 import client from "@/utils/prisma";
 import sibClient, { changeAPIKey } from "../../utils/sib";
 import getAPIKey from "./api-key/getAPIKey";
+import { BulkEmailRequestBody } from "../../../types/BulkEmailRequestBody";
+import { Response } from "../../../types/Response";
 
-export type Response = {
-  success: boolean;
-  message?: string;
-};
+// This function sends email notifications to multiple recipients.
 
-export type BulkEmailRequestBody = {
-  messageVersions: {
-    to: {
-      email: string;
-      name: string;
-    }[];
-    /* SendInBlue requires this to be an array.
-    But if you do this, every user with this messageVersion will receive the same email.
-    So we just create as many messageVersions as there are users.
-    */
-    params: {
-      name: string;
-      message: string;
-    };
-  }[];
-};
-
-/* This function sends email notifications to multiple recipients.
-It is called by the bulk-notification-v2 endpoint.
-*/
 
 export default async function sendNotificationEmail(
   parameters: BulkEmailRequestBody
