@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id              String    @id(map: "users_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String    @unique(map: "users_un")
+  name            String
+  phone           String
+  profile_picture String?
+  password        String
+  permissions     Int       @default(0)
+  enabled         Boolean   @default(true)
+  company_id      Int
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  companies       companies @relation(fields: [company_id], references: [id], onDelete: Cascade, map: "users_fk")
+}
+
+model companies {
+  id         Int      @id(map: "companies_pk") @default(autoincrement())
+  name       String
+  bio        String?  @default("")
+  website    String?  @default("")
+  logo       String?  @default("")
+  visibility Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  invite     invite?
+  users      users[]
+}
+
+model invite {
+  id         Int       @id(map: "invite_pk") @default(autoincrement())
+  name       String
+  email      String
+  token      String
+  expiry     DateTime  @default(now()) @db.Timestamptz(6)
+  company_id Int
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  companies  companies @relation(fields: [id], references: [id], onDelete: Cascade, map: "invite_fk")
+}
