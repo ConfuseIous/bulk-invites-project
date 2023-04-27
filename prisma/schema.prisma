@@ -10,6 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model SIBKey {
+  key      String @id
+  uses     Int    @default(300)
+  sibEmail String
+
+  @@unique([key, sibEmail])
+  @@map("sibkeys")
+}
+
 model users {
   id              String    @id(map: "users_pk") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email           String    @unique(map: "users_un")

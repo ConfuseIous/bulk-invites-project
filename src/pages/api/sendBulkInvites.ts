@@ -75,5 +75,4 @@ export default async function handler(
   });
 
   // Send email to successfully created invites
-  
 }
