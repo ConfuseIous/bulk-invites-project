@@ -4,14 +4,19 @@ import { PrismaClient } from "@prisma/client";
 import { BulkEmailRequestBody } from "../../../types/BulkEmailRequestBody";
 import sendNotificationEmail from "./bulkSendNotificationEmails";
 
+const bulkInviteSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+  companyName: z.string(),
+  email: z.string(),
+});
+
 export const sendBulkInvitesSchema = z.array(
-  z.object({
-    name: z.string(),
-    phone: z.string(),
-    companyName: z.string(),
-    email: z.string(),
-  })
+  bulkInviteSchema
 );
+
+export type SendBulkInvitesSchemaType = z.infer<typeof sendBulkInvitesSchema>;
+export type BulkInvitesSchemaType = z.infer<typeof bulkInviteSchema>;
 
 export default async function handler(
   req: NextApiRequest,
