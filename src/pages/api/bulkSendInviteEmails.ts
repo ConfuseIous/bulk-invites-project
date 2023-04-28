@@ -19,8 +19,6 @@ export default async function sendNotificationEmail(
     console.log(body.to[0].email);
   });
 
-  const apiInstance = new sibClient.TransactionalEmailsApi();
-
   const apiKey = (await getAPIKey(data.messageVersions.length)).key;
 
   if (!apiKey) {
@@ -32,21 +30,23 @@ export default async function sendNotificationEmail(
 
   changeAPIKey(apiKey.key);
 
+  const apiInstance = new sibClient.TransactionalEmailsApi();
+
   const email = {
     sender: {
       email: process.env.SIB_SENDER_EMAIL,
       name: process.env.SIB_SENDER_NAME,
     },
-    subject: "SIWMA Listing Alerts",
+    subject: "SIWMA Invite",
     htmlContent: `
       <!DOCTYPE html>
       <html>
       <body>
-        <h1>Listing Alerts</h1>
-        <p>Hi,</p>
-        <p>Here are your latest alerts:</p>
-        {{params.message}}
-        <p><a href="http://localhost:3000/unsubscribe">Manage your Alert Preferences</a></p>
+        <h1>Hi,</h1>
+        You have been invited to join the SIWMA Marketplace as a member of {{params.message}}.
+        Please click the following link to register your account:
+        <a href="https://google.com">https://google.com</a>
+        If this email was sent to you by mistake, please ignore it.
       </body>
       </html>
       `,

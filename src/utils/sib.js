@@ -11,4 +11,3 @@ export function changeAPIKey(key) {
 }
 
 export default SibApiV3Sdk
-

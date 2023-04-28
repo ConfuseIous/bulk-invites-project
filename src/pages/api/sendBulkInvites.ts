@@ -2,7 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
 import { BulkEmailRequestBody } from "../../../types/BulkEmailRequestBody";
-import sendNotificationEmail from "./bulkSendNotificationEmails";
+import sendNotificationEmail from "./bulkSendInviteEmails";
+import { Response } from "../../../types/Response";
 
 const bulkInviteSchema = z.object({
   name: z.string(),
@@ -11,16 +12,14 @@ const bulkInviteSchema = z.object({
   email: z.string(),
 });
 
-export const sendBulkInvitesSchema = z.array(
-  bulkInviteSchema
-);
+export const sendBulkInvitesSchema = z.array(bulkInviteSchema);
 
 export type SendBulkInvitesSchemaType = z.infer<typeof sendBulkInvitesSchema>;
 export type BulkInvitesSchemaType = z.infer<typeof bulkInviteSchema>;
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse<Response>
 ) {
   const prisma = new PrismaClient();
 
@@ -28,15 +27,23 @@ export default async function handler(
   const parsedBody = sendBulkInvitesSchema.safeParse(req.body);
 
   if (!parsedBody.success) {
-    return res.status(400).json({ error: parsedBody.error });
+    return res
+      .status(400)
+      .json({ success: false, message: parsedBody.error.toString() });
   }
 
   const invites = parsedBody.data;
 
   // Verify that at least one invite is provided
   if (invites.length === 0) {
-    return res.status(400).json({ error: "No invites provided" });
+    return res
+      .status(400)
+      .json({ success: false, message: "No invites provided" });
   }
+
+  // TODO: Identify duplicate emails and mobile numbers
+  // const duplicateEmails = new Set();
+  // const duplicateMobileNumbers = new Set();
 
   // Store emails for successfully created invites to be sent via SIB
   const emailsForSuccessfullyCreatedInvites: string[] = [];
@@ -44,7 +51,7 @@ export default async function handler(
   // Store emails for unsuccessfully created invites to show in error message
   const emailsForUnsuccessfullyCreatedInvites: string[] = [];
 
-  invites.forEach(async (invite) => {
+  const promises = invites.map(async (invite) => {
     // Check if company name already exists
     let company = await prisma.companies.findFirst({
       where: { name: invite.companyName },
@@ -60,25 +67,32 @@ export default async function handler(
       });
     }
 
-    // Create user
-    const user = await prisma.users.create({
-      data: {
-        email: invite.email,
-        name: invite.name,
-        phone: invite.phone,
-        // Password is automatically set to name + random number from 10000 to 99999
-        // User should be prompted to change password on first login
-        password: `${invite.name}${Math.floor(Math.random() * 90000) + 10000}`,
-        companies: {
-          connect: { id: company.id },
+    // Create user in try/catch block to catch duplicate email error
+    try {
+      await prisma.users.create({
+        data: {
+          email: invite.email,
+          name: invite.name,
+          phone: invite.phone,
+          // Password is automatically set to name + random number from 10000 to 99999
+          // User should be prompted to change password on first login
+          // We should also store a hash of the password instead of the password itself
+          password: `${invite.name}${
+            Math.floor(Math.random() * 90000) + 10000
+          }`,
+          companies: {
+            connect: { id: company.id },
+          },
         },
-      },
-    });
+      });
 
-    user
-      ? emailsForSuccessfullyCreatedInvites.push(invite.email)
-      : emailsForUnsuccessfullyCreatedInvites.push(invite.email);
+      emailsForSuccessfullyCreatedInvites.push(invite.email);
+    } catch (error) {
+      emailsForUnsuccessfullyCreatedInvites.push(invite.email);
+    }
   });
+
+  await Promise.all(promises);
 
   // Format data for SIB
   const data: BulkEmailRequestBody = {
@@ -91,7 +105,7 @@ export default async function handler(
       ],
       params: {
         name: email,
-        message: "You have been invited to join SIWMA.",
+        message: invites.find((invite) => invite.email === email)?.name ?? "",
       },
     })),
   };
@@ -101,18 +115,24 @@ export default async function handler(
 
   // If there was an error sending the email, return error
   if (response.success) {
+    let message = `Successfully created and sent invites for ${emailsForSuccessfullyCreatedInvites.join(
+      ", "
+    )}.`;
+
+    if (emailsForUnsuccessfullyCreatedInvites.length > 0) {
+      message += ` There was an error processing invites for ${emailsForUnsuccessfullyCreatedInvites.join(
+        ", "
+      )}.`;
+    }
+
     return res.status(200).json({
-      message: `Successfully created and sent invites for ${emailsForSuccessfullyCreatedInvites.join(
-        ", "
-      )}. There was an error processing invites for ${emailsForUnsuccessfullyCreatedInvites.join(
-        ", "
-      )}.`,
+      success: true,
+      message: message,
     });
   } else {
     return res.status(400).json({
-      error: `Successfully created invites for ${emailsForSuccessfullyCreatedInvites.join(
-        ", "
-      )}, but there was an error scheduling emails to be sent to these users. Message: ${response.message}`,
+      success: false,
+      message: "There was an error sending invites.",
     });
   }
 }
