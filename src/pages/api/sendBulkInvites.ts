@@ -41,10 +41,6 @@ export default async function handler(
       .json({ success: false, message: "No invites provided" });
   }
 
-  // TODO: Identify duplicate emails and mobile numbers
-  // const duplicateEmails = new Set();
-  // const duplicateMobileNumbers = new Set();
-
   // Store emails for successfully created invites to be sent via SIB
   const emailsForSuccessfullyCreatedInvites: string[] = [];
 
