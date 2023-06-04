@@ -1,4 +1,5 @@
 export type BulkEmailRequestBody = {
+  htmlContent: string
   messageVersions: {
     to: {
       email: string;

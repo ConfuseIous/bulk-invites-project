@@ -7,7 +7,7 @@ export default async function getAPIKey(
   const key = await client.sIBKey.findFirst({
     where: {
       uses: {
-        gte: 300 - numEmails,
+        gte: numEmails,
       },
     },
   });
