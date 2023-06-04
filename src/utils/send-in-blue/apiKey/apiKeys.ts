@@ -1,9 +1,10 @@
-import client from "@/utils/prisma";
-import { GetAPIKeyResponseBody } from "../../../../types/GetAPIKeyResponseBody";
+import { PrismaClient } from "@prisma/client";
+import { GetAPIKeyResponseBody } from "../types/GetAPIKeyResponseBody";
 
 export default async function getAPIKey(
   numEmails: number
 ): Promise<GetAPIKeyResponseBody> {
+  const client = new PrismaClient();
   const key = await client.sIBKey.findFirst({
     where: {
       uses: {
@@ -20,6 +21,6 @@ export default async function getAPIKey(
 
   return {
     success: true,
-    key: key,
+    key,
   };
 }
