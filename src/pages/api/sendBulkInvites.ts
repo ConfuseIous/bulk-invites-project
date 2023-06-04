@@ -2,8 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
 import { BulkEmailRequestBody } from "../../../types/BulkEmailRequestBody";
-import sendNotificationEmail from "./bulkSendInviteEmails";
 import { Response } from "../../../types/Response";
+import sendEmails from "../../utils/send-in-blue/sendEmails";
 
 const bulkInviteSchema = z.object({
   name: z.string(),
@@ -128,7 +128,7 @@ export default async function handler(
   };
 
   // Send email to successfully created invites
-  let response = await sendNotificationEmail(data);
+  const response = await sendEmails(data);
 
   // If there was an error sending the email, return error
   if (response.success) {
