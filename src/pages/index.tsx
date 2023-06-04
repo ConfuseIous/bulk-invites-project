@@ -8,11 +8,10 @@ import {
   BulkInvitesSchemaType,
   SendBulkInvitesSchemaType,
 } from "./api/sendBulkInvites";
+import React from "react";
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState(null);
-
-  function sendBulkInvites() {}
 
   const changeHandler = async (event: any) => {
     if (event.target.files[0].size > 64000000) {

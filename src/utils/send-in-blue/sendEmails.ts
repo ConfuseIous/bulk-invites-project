@@ -36,6 +36,13 @@ export default async function sendEmails(
     };
   }
 
+  if (data.messageVersions.length === 0) {
+    console.log("No message versions provided");
+    return {
+      success: true,
+    };
+  }
+
   console.log(data);
 
   changeAPIKey(apiKey); // Set the API Key in the SendInBlue client

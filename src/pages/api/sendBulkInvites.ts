@@ -90,6 +90,15 @@ export default async function handler(
 
   await Promise.all(promises);
 
+  if (emailsForSuccessfullyCreatedInvites.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: `There was an error processing invites for ${emailsForUnsuccessfullyCreatedInvites.join(
+        ", "
+      )}.`,
+    });
+  }
+
   // Format data for SIB
   const data: BulkEmailRequestBody = {
     htmlContent: `
@@ -126,8 +135,6 @@ export default async function handler(
       },
     })),
   };
-
-  console.log(data);
 
   // Send email to successfully created invites
   const response = await sendEmails(data);
