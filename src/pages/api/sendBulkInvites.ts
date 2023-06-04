@@ -127,6 +127,8 @@ export default async function handler(
     })),
   };
 
+  console.log(data);
+
   // Send email to successfully created invites
   const response = await sendEmails(data);
 

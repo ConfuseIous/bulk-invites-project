@@ -42,8 +42,20 @@ export default async function sendEmails(
 
   const apiInstance = new sibClient.TransactionalEmailsApi();
 
+  const updatedData = {
+    htmlContent: data.htmlContent,
+    subject: "SIWMA Notifications",
+    messageVersions: data.messageVersions,
+    sender: {
+      email: senderEmail,
+      name: "SIWMA Marketplace",
+    },
+  };
+
+  console.log(data.messageVersions);
+
   try {
-    await apiInstance.sendTransacEmail(data);
+    await apiInstance.sendTransacEmail(updatedData);
 
     if (process.env.NODE_ENV === "development" && data.messageVersions) {
       // If in development, update the API Key usage count
@@ -63,6 +75,7 @@ export default async function sendEmails(
       success: true,
     };
   } catch (error) {
+    console.log(error);
     return {
       success: false,
     };
