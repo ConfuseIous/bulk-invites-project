@@ -23,7 +23,6 @@ export default async function handler(
 ) {
   const prisma = new PrismaClient();
 
-  // Validate request body
   const parsedBody = sendBulkInvitesSchema.safeParse(req.body);
 
   if (!parsedBody.success) {
@@ -47,35 +46,35 @@ export default async function handler(
   // Store emails for unsuccessfully created invites to show in error message
   const emailsForUnsuccessfullyCreatedInvites: string[] = [];
 
-  const promises = invites.map(async (invite) => {
-    // Check if company name already exists
-    let company = await prisma.companies.findFirst({
-      where: { name: invite.companyName },
-    });
-
-    if (!company) {
-      // Create company if it doesn't exist
-      company = await prisma.companies.create({
-        data: {
-          name: invite.companyName,
-          users: {},
-        },
-      });
-    }
-
-    // Create user in try/catch block to catch duplicate email error
+  // Create invites in parallel using Promise.allSettled for better error handling
+  const invitePromises = invites.map(async (invite) => {
     try {
+      // Check if company name already exists
+      let company = await prisma.companies.findFirst({
+        where: { name: invite.companyName },
+      });
+
+      if (!company) {
+        // Create company if it doesn't exist
+        company = await prisma.companies.create({
+          data: {
+            name: invite.companyName,
+            users: {},
+          },
+        });
+      }
+
+      // Create user with a randomly generated password
+      const password = `${invite.name}${
+        Math.floor(Math.random() * 90000) + 10000
+      }`;
+
       await prisma.users.create({
         data: {
           email: invite.email,
           name: invite.name,
           phone: invite.phone,
-          // Password is automatically set to name + random number from 10000 to 99999
-          // User should be prompted to change password on first login
-          // We should also store a hash of the password instead of the password itself
-          password: `${invite.name}${
-            Math.floor(Math.random() * 90000) + 10000
-          }`,
+          password,
           companies: {
             connect: { id: company.id },
           },
@@ -84,11 +83,13 @@ export default async function handler(
 
       emailsForSuccessfullyCreatedInvites.push(invite.email);
     } catch (error) {
+      console.log("Error creating invite");
+      console.log(error);
       emailsForUnsuccessfullyCreatedInvites.push(invite.email);
     }
   });
 
-  await Promise.all(promises);
+  await Promise.allSettled(invitePromises);
 
   if (emailsForSuccessfullyCreatedInvites.length === 0) {
     return res.status(400).json({

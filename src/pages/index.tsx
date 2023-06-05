@@ -84,11 +84,7 @@ export default function Home() {
       });
 
       const response: Response = await res.json();
-      if (response.success) {
-        alert("Bulk invites sent!");
-      } else {
-        alert(response.message);
-      }
+      alert(response.message);
     };
     reader.readAsBinaryString(event.target.files[0]);
   };
